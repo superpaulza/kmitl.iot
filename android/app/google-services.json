@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "153024751827",
+    "firebase_url": "https://smart-band-cf871-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "smart-band-cf871",
+    "storage_bucket": "smart-band-cf871.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:153024751827:android:8bcca715cfcb0b68f80c26",
+        "android_client_info": {
+          "package_name": "th.ac.kmitl.iot.bee_project"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "153024751827-mmmgreo9n0e852eu5c8u6ile0j34koo2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJZVu5grPqKru3dCDWBsLUw5mv7bUtNKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "153024751827-mmmgreo9n0e852eu5c8u6ile0j34koo2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
