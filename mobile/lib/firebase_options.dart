@@ -56,7 +56,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDJZVu5grPqKru3dCDWBsLUw5mv7bUtNKA',
-    appId: '1:153024751827:android:64e9021ad55c1d2ef80c26',
+    appId: '1:153024751827:android:ec0e586d174fa327f80c26',
     messagingSenderId: '153024751827',
     projectId: 'smart-band-cf871',
     databaseURL: 'https://smart-band-cf871-default-rtdb.asia-southeast1.firebasedatabase.app',
