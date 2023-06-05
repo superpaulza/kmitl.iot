@@ -1,4 +1,5 @@
 import 'package:bee_project/firebase_options.dart';
+import 'package:bee_project/screen/RegisterBand.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'Screen/MainMenu.dart';
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'อบอุ่นหัวใจ'),
+      home: RegisterSmartBandPage(),
     );
   }
 }

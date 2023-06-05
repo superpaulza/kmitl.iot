@@ -65,6 +65,21 @@ class _MyHomePageState extends State<MyHomePage> {
             style: GoogleFonts.montserrat(
                 fontSize: 25, fontStyle: FontStyle.italic),
           ),
+          actions: <Widget>[
+            Padding(
+                padding: EdgeInsets.only(right: 20.0),
+                child: GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text("Sending Message"),
+                    ));
+                  },
+                  child: Icon(
+                    Icons.settings,
+                    size: 26.0,
+                  ),
+                )),
+          ],
         ),
         body: SingleChildScrollView(
           child: Column(
