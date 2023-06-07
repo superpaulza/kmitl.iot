@@ -1,31 +1,59 @@
 import 'package:flutter/material.dart';
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
+class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text('Settings'),
       ),
-      body: Column(),
+      body: ListView(
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+              child: Icon(Icons.person),
+            ),
+            title: Text('John Doe'),
+            subtitle: Text('john.doe@example.com'),
+          ),
+          Divider(),
+          SwitchListTile(
+            title: Text('Push Notifications'),
+            subtitle: Text('Receive push notifications'),
+            value: true,
+            onChanged: (value) {},
+            secondary: Icon(Icons.notifications),
+          ),
+          ListTile(
+            onTap: () {
+              // Open details page
+            },
+            leading: Icon(Icons.language),
+            title: Text('Language'),
+          ),
+          ListTile(
+            onTap: () {
+              // Open details page
+            },
+            leading: Icon(Icons.lock),
+            title: Text('Privacy'),
+          ),
+          ListTile(
+            onTap: () {
+              // Open details page
+            },
+            leading: Icon(Icons.notifications_off),
+            title: Text('Notifications'),
+          ),
+          ListTile(
+            onTap: () {
+              // Open details page
+            },
+            leading: Icon(Icons.help),
+            title: Text('Help & Support'),
+          ),
+        ],
+      ),
     );
   }
 }

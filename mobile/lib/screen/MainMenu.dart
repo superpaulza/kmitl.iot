@@ -70,9 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 padding: EdgeInsets.only(right: 20.0),
                 child: GestureDetector(
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("Sending Message"),
-                    ));
+                    Navigator.pushNamed(context, "/settings");
                   },
                   child: Icon(
                     Icons.settings,
@@ -92,6 +90,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       iconData: Icons.favorite,
                       dataText: "$heartrateBPM \nรอบ (BPM)",
                       verticalPadding: 50,
+                      onTap: () {
+                        Navigator.pushNamed(context, "/heartrate");
+                      },
                     ),
                   ),
                   Expanded(
@@ -99,6 +100,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       iconData: Icons.ac_unit,
                       dataText: "${bodyTemp.toStringAsFixed(2)} \nองศา (°C)",
                       verticalPadding: 50,
+                      onTap: () {
+                        Navigator.pushNamed(context, "/bodytemp");
+                      },
                     ),
                   ),
                 ],

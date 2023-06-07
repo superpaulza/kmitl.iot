@@ -1,5 +1,8 @@
 import 'package:bee_project/firebase_options.dart';
+import 'package:bee_project/screen/BodyTempMonitor.dart';
+import 'package:bee_project/screen/HeartRateMonitor.dart';
 import 'package:bee_project/screen/RegisterBand.dart';
+import 'package:bee_project/screen/Settings.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'Screen/MainMenu.dart';
@@ -23,6 +26,11 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: RegisterSmartBandPage(),
+      routes: <String, WidgetBuilder>{
+        '/heartrate': (BuildContext context) => HeartRateMonitorPage(),
+        '/bodytemp': (BuildContext context) => BodyTempMonitorPage(),
+        '/settings': (BuildContext context) => SettingsPage(),
+      },
     );
   }
 }
