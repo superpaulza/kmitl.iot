@@ -15,8 +15,8 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
   StreamSubscription<DatabaseEvent>? _dataSubscription;
 
   double bodyTemp = 0.0;
-  List<BodyTempData> bodyTempDataList = [];
-  List<BodyTempData> filteredBodyTempDataList = [];
+  List<_ChartData> bodyTempDataList = [];
+  List<_ChartData> filteredBodyTempDataList = [];
   int selectedRangeIndex = 0;
   String macAddress = "";
 
@@ -33,6 +33,7 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
     // TODO: implement dispose
     super.dispose();
     _dataSubscription?.cancel();
+    // timer.cancel();
   }
 
   loadData() async {
@@ -54,14 +55,79 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
         });
       }
     });
+  }
 
-    _dataSubscription = databaseReference
-        .child('/$macAddress/records')
-        .onValue
-        .listen((DatabaseEvent event) {
-      if (event.snapshot.value != null) {
-        setState(() {
-          final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Body Temp Monitor'),
+      ),
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: _showChart(),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard() {
+    // Calculate average, max, and min heart rates
+    double averageTemp = 0;
+    double maxTemp = double.negativeInfinity;
+    double minTemp = double.infinity;
+
+    for (_ChartData data in bodyTempDataList) {
+      averageTemp += data.y1;
+
+      if (data.y1 > maxTemp) {
+        maxTemp = data.y1;
+      }
+
+      if (data.y1 < minTemp) {
+        minTemp = data.y1;
+      }
+    }
+
+    if (bodyTempDataList.isNotEmpty) {
+      averageTemp /= bodyTempDataList.length;
+    }
+
+    // Build the summary card widget
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text(
+              'Average: ${averageTemp.toStringAsFixed(2)} °C',
+              style: const TextStyle(fontSize: 16.0),
+            ),
+            Text(
+              'Max: ${maxTemp.toStringAsFixed(2)} °C',
+              style: const TextStyle(fontSize: 16.0),
+            ),
+            Text(
+              'Min: ${minTemp.toStringAsFixed(2)} °C',
+              style: const TextStyle(fontSize: 16.0),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _showChart() {
+    return StreamBuilder(
+      stream: databaseReference.child('/$macAddress/records').onValue,
+      builder: (context, snapshot) {
+        Widget widget;
+        if (snapshot.hasData &&
+            !snapshot.hasError &&
+            snapshot.data?.snapshot.value != null) {
+          final data =
+          Map<String, dynamic>.from(snapshot.data?.snapshot.value as Map);
 
           // Clear previous data
           bodyTempDataList.clear();
@@ -70,213 +136,83 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
           // Extract heart rate data from the snapshot
           data.forEach((key, value) {
             final heartRate = value['body_temp']['C'];
-            final timestamp = value['timestamp'];
+            final timestamp =
+            DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000);
 
-            bodyTempDataList
-                .add(BodyTempData(timestamp, heartRate.toDouble()));
+            bodyTempDataList.add(_ChartData(timestamp, heartRate.toDouble()));
           });
-        });
-      }
-    });
-    updateFilteredData();
-  }
 
-  void updateFilteredData() {
-    DateTime currentDate = DateTime.now();
-    filteredBodyTempDataList.clear();
-
-    if (selectedRangeIndex == 0) {
-      // 5 minutes
-      const range = Duration(minutes: 5);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 1) {
-      // 30 minutes
-      const range = Duration(minutes: 30);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 2) {
-      // 1 hour
-      const range = Duration(hours: 1);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 3) {
-      // 6 hours
-      const range = Duration(hours: 6);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 4) {
-      // 1 day
-      const range = Duration(days: 1);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 5) {
-      // 1 week
-      const range = Duration(days: 7);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 6) {
-      // 1 month
-      const range = Duration(days: 30);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 7) {
-      // 1 year
-      const range = Duration(days: 365);
-      filteredBodyTempDataList =
-          filterDataByRange(currentDate.subtract(range), currentDate);
-    } else if (selectedRangeIndex == 8) {
-      // All
-      filteredBodyTempDataList = List.from(bodyTempDataList);
-    }
-  }
-
-  List<BodyTempData> filterDataByRange(DateTime startDate, DateTime endDate) {
-    return bodyTempDataList.where((data) {
-      final timestamp =
-          DateTime.fromMillisecondsSinceEpoch(data.timestamp * 1000);
-      return timestamp.isAfter(startDate) && timestamp.isBefore(endDate);
-    }).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: const Text('Body Temp Monitor'),
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Text('Select Range: '),
-                    SizedBox(width: 16.0),
-                    DropdownButton<int>(
-                      value: selectedRangeIndex,
-                      onChanged: (int? newValue) {
-                        setState(() {
-                          selectedRangeIndex = newValue!;
-                          updateFilteredData();
-                        });
-                      },
-                      items: [
-                        DropdownMenuItem<int>(
-                          value: 0,
-                          child: Text('5 min'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 1,
-                          child: Text('30 min'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 2,
-                          child: Text('1 hour'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 3,
-                          child: Text('6 hours'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 4,
-                          child: Text('1 day'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 5,
-                          child: Text('1 week'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 6,
-                          child: Text('1 month'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 7,
-                          child: Text('1 year'),
-                        ),
-                        DropdownMenuItem<int>(
-                          value: 8,
-                          child: Text('All'),
-                        ),
-                      ],
+          widget = SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: SfCartesianChart(
+                    tooltipBehavior: TooltipBehavior(enable: true),
+                    primaryXAxis: DateTimeAxis(
+                      intervalType: DateTimeIntervalType.auto,
                     ),
-                  ],
+                    primaryYAxis: NumericAxis(),
+                    zoomPanBehavior: ZoomPanBehavior(
+                      enablePanning: true,
+                      enablePinching: true,
+                    ),
+                    series: <ScatterSeries<_ChartData, DateTime>>[
+                      ScatterSeries<_ChartData, DateTime>(
+                        dataSource: bodyTempDataList,
+                        trendlines: <Trendline>[
+                          Trendline(
+                              type: TrendlineType.linear, color: Colors.blue)
+                        ],
+                        sortFieldValueMapper: (_ChartData data, _) => data.x,
+                        markerSettings: const MarkerSettings(isVisible: true),
+                        xValueMapper: (_ChartData data, _) => data.x,
+                        yValueMapper: (_ChartData data, _) => data.y1,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Container(
-                margin: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8.0),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    '$bodyTemp °C',
+                    style: const TextStyle(fontSize: 20.0),
+                  ),
                 ),
-                child: _buildHeartRateGraph(),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  '$bodyTemp °C',
-                  style: const TextStyle(fontSize: 20.0),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: const Text(
+                    'Daily Summary',
+                    style:
+                    TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                child: const Text(
-                  'Daily Summary',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _buildSummaryCard(),
-            ],
-          ),
-        ));
-  }
+                _buildSummaryCard(),
+              ],
+            ),
+          );
+        } else {
+          widget = const Center(child: CircularProgressIndicator());
+        }
 
-  Widget _buildHeartRateGraph() {
-    // Implement your heart rate graph here using a charting library like 'charts_flutter'
-    return SfCartesianChart(
-      primaryXAxis: DateTimeAxis(),
-      series: <ChartSeries>[
-        LineSeries<BodyTempData, DateTime>(
-          dataSource: filteredBodyTempDataList,
-          xValueMapper: (BodyTempData data, _) =>
-              DateTime.fromMillisecondsSinceEpoch(data.timestamp * 1000),
-          yValueMapper: (BodyTempData data, _) => data.tempC,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    // Implement your summary card here with average, max, and min heart rates
-    return const Card(
-      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              'Average: 75 bpm',
-              style: TextStyle(fontSize: 16.0),
-            ),
-            Text(
-              'Max: 100 bpm',
-              style: TextStyle(fontSize: 16.0),
-            ),
-            Text(
-              'Min: 60 bpm',
-              style: TextStyle(fontSize: 16.0),
-            ),
-          ],
-        ),
-      ),
+        return SizedBox(
+          // Wrap the chart in a fixed-sized container to prevent flickering
+          width: double.infinity,
+          height: 300, // Adjust the height as needed
+          child: widget,
+        );
+      },
     );
   }
 }
 
-class BodyTempData {
-  final int timestamp;
-  final double tempC;
+class _ChartData {
+  _ChartData(this.x, this.y1);
 
-  BodyTempData(this.timestamp, this.tempC);
+  final DateTime x;
+  final double y1;
 }

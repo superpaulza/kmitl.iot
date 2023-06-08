@@ -20,23 +20,6 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
   int selectedRangeIndex = 0;
   String macAddress = "";
 
-  // late Timer timer;
-  int count = 0;
-  List<_ChartData> chartData = <_ChartData>[];
-  late Map<dynamic, dynamic> data;
-
-  // void _updateDataSource(Timer timer) {
-  //   setState(() {
-  //     chartData.add(_ChartData(
-  //         x: DateTime.fromMillisecondsSinceEpoch(data['x']), y1: data['y1']));
-  //     // if(chartData.length >= 20){
-  //     //   chartData.removeAt(0);
-  //     // }
-  //   });
-  //
-  //   count = count + 1;
-  // }
-
   @override
   void initState() {
     super.initState();
@@ -77,38 +60,15 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Heart Rate Monitor'),
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: _showChart(),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  '$heartrateBPM bpm',
-                  style: const TextStyle(fontSize: 20.0),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                child: const Text(
-                  'Daily Summary',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _buildSummaryCard(),
-            ],
-          ),
-        ));
+      appBar: AppBar(
+        title: const Text('Heart Rate Monitor'),
+      ),
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: _showChart(),
+      ),
+    );
   }
 
   Widget _buildSummaryCard() {
@@ -182,34 +142,64 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
             heartRateDataList.add(_ChartData(timestamp, heartRate.toDouble()));
           });
 
-          widget = SfCartesianChart(
-            tooltipBehavior: TooltipBehavior(enable: true),
-            primaryXAxis: DateTimeAxis(
-              intervalType: DateTimeIntervalType.auto,
+          widget = SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: SfCartesianChart(
+                    tooltipBehavior: TooltipBehavior(enable: true),
+                    primaryXAxis: DateTimeAxis(
+                      intervalType: DateTimeIntervalType.auto,
+                    ),
+                    primaryYAxis: NumericAxis(),
+                    zoomPanBehavior: ZoomPanBehavior(
+                      enablePanning: true,
+                      enablePinching: true,
+                    ),
+                    series: <ScatterSeries<_ChartData, DateTime>>[
+                      ScatterSeries<_ChartData, DateTime>(
+                        dataSource: heartRateDataList,
+                        trendlines: <Trendline>[
+                          Trendline(
+                              type: TrendlineType.linear, color: Colors.blue)
+                        ],
+                        sortFieldValueMapper: (_ChartData data, _) => data.x,
+                        markerSettings: const MarkerSettings(isVisible: true),
+                        xValueMapper: (_ChartData data, _) => data.x,
+                        yValueMapper: (_ChartData data, _) => data.y1,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    '$heartrateBPM bpm',
+                    style: const TextStyle(fontSize: 20.0),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: const Text(
+                    'Daily Summary',
+                    style:
+                        TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                _buildSummaryCard(),
+              ],
             ),
-            primaryYAxis: NumericAxis(),
-            zoomPanBehavior: ZoomPanBehavior(
-              enablePanning: true,
-              enablePinching: true,
-            ),
-            series: <ScatterSeries<_ChartData, DateTime>>[
-              ScatterSeries<_ChartData, DateTime>(
-                dataSource: heartRateDataList,
-                trendlines: <Trendline>[
-                  Trendline(type: TrendlineType.linear, color: Colors.blue)
-                ],
-                sortFieldValueMapper: (_ChartData data, _) => data.x,
-                markerSettings: MarkerSettings(isVisible: true),
-                xValueMapper: (_ChartData data, _) => data.x,
-                yValueMapper: (_ChartData data, _) => data.y1,
-              ),
-            ],
           );
         } else {
           widget = const Center(child: CircularProgressIndicator());
         }
 
-        return Container(
+        return SizedBox(
           // Wrap the chart in a fixed-sized container to prevent flickering
           width: double.infinity,
           height: 300, // Adjust the height as needed
