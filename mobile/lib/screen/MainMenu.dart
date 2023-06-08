@@ -4,6 +4,7 @@ import 'package:bee_project/widget/CustomCardWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -17,36 +18,38 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final databaseReference = FirebaseDatabase.instance.ref();
-
   StreamSubscription<DatabaseEvent>? _dataSubscription;
 
   double bodyTemp = 0.0;
   double heartrateBPM = 0.0;
+  String macAddress = "";
 
   @override
   void initState() {
     super.initState();
-    _dataSubscription = databaseReference
-        .child('/80:7D:3A:5A:4F:CC/body_temp/C')
-        .onValue
-        .listen((DatabaseEvent event) {
-      if (event.snapshot.value != null) {
-        setState(() {
-          bodyTemp = double.parse(event.snapshot.value.toString());
-          // Update your dataText variables with the fetched data
-        });
-      }
-    });
-    _dataSubscription = databaseReference
-        .child('/80:7D:3A:5A:4F:CC/heart_rate/Avg BPM')
-        .onValue
-        .listen((DatabaseEvent event) {
-      if (event.snapshot.value != null) {
-        setState(() {
-          heartrateBPM = double.parse(event.snapshot.value.toString());
-          // Update your dataText variables with the fetched data
-        });
-      }
+    loadData().then((_) {
+      _dataSubscription = databaseReference
+          .child('/$macAddress/body_temp/C')
+          .onValue
+          .listen((DatabaseEvent event) {
+        if (event.snapshot.value != null) {
+          setState(() {
+            bodyTemp = double.parse(event.snapshot.value.toString());
+            // Update your dataText variables with the fetched data
+          });
+        }
+      });
+      _dataSubscription = databaseReference
+          .child('/$macAddress/heart_rate/Avg BPM')
+          .onValue
+          .listen((DatabaseEvent event) {
+        if (event.snapshot.value != null) {
+          setState(() {
+            heartrateBPM = double.parse(event.snapshot.value.toString());
+            // Update your dataText variables with the fetched data
+          });
+        }
+      });
     });
   }
 
@@ -54,6 +57,13 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     super.dispose();
     _dataSubscription?.cancel();
+  }
+
+  loadData() async {
+    SharedPreferences savedPref = await SharedPreferences.getInstance();
+    setState(() {
+      macAddress = (savedPref.getString('macAddress') ?? "");
+    });
   }
 
   @override
@@ -67,12 +77,12 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           actions: <Widget>[
             Padding(
-                padding: EdgeInsets.only(right: 20.0),
+                padding: const EdgeInsets.only(right: 20.0),
                 child: GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(context, "/settings");
                   },
-                  child: Icon(
+                  child: const Icon(
                     Icons.settings,
                     size: 26.0,
                   ),

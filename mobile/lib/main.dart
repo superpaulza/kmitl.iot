@@ -25,7 +25,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: RegisterSmartBandPage(),
+      debugShowCheckedModeBanner: false,
+      home: const RegisterSmartBandPage(),
       routes: <String, WidgetBuilder>{
         '/heartrate': (BuildContext context) => HeartRateMonitorPage(),
         '/bodytemp': (BuildContext context) => BodyTempMonitorPage(),
