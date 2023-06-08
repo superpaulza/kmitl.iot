@@ -137,7 +137,7 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
           data.forEach((key, value) {
             final heartRate = value['body_temp']['C'];
             final timestamp =
-            DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000);
+            DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000).add(const Duration(hours: 7));
 
             bodyTempDataList.add(_ChartData(timestamp, heartRate.toDouble()));
           });

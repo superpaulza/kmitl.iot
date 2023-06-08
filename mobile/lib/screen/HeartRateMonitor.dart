@@ -137,7 +137,7 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
           data.forEach((key, value) {
             final heartRate = value['heart_rate']['Avg BPM'];
             final timestamp =
-                DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000);
+                DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000).add(const Duration(hours: 7));
 
             heartRateDataList.add(_ChartData(timestamp, heartRate.toDouble()));
           });
