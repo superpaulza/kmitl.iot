@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:bee_project/widget/CustomCardWidget.dart';
+import 'package:bee_project/widget/custom_card_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -26,7 +26,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    super.initState();
     loadData().then((_) {
       _dataSubscription = databaseReference
           .child('/$macAddress/body_temp/C')
@@ -51,6 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       });
     });
+    super.initState();
   }
 
   @override

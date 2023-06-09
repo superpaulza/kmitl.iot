@@ -1,11 +1,12 @@
 import 'package:bee_project/firebase_options.dart';
-import 'package:bee_project/screen/BodyTempMonitor.dart';
-import 'package:bee_project/screen/HeartRateMonitor.dart';
-import 'package:bee_project/screen/RegisterBand.dart';
-import 'package:bee_project/screen/Settings.dart';
+import 'package:bee_project/screen/body_temp_monitor.dart';
+import 'package:bee_project/screen/heart_rate_monitor.dart';
+import 'package:bee_project/screen/register_band.dart';
+import 'package:bee_project/screen/set_alert_notification.dart';
+import 'package:bee_project/screen/settings.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'Screen/MainMenu.dart';
+import 'Screen/main_menu.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,9 +29,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: const RegisterSmartBandPage(),
       routes: <String, WidgetBuilder>{
+        '/setalert': (BuildContext context) => SetAlertNotificationPage(),
         '/heartrate': (BuildContext context) => HeartRateMonitorPage(),
         '/bodytemp': (BuildContext context) => BodyTempMonitorPage(),
         '/settings': (BuildContext context) => SettingsPage(),
+        '/register': (BuildContext context) => const RegisterSmartBandPage()
       },
     );
   }

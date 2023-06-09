@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'MainMenu.dart';
+import 'main_menu.dart';
 
 class RegisterSmartBandPage extends StatefulWidget {
   const RegisterSmartBandPage({super.key});

@@ -127,7 +127,7 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
             !snapshot.hasError &&
             snapshot.data?.snapshot.value != null) {
           final data =
-          Map<String, dynamic>.from(snapshot.data?.snapshot.value as Map);
+              Map<String, dynamic>.from(snapshot.data?.snapshot.value as Map);
 
           // Clear previous data
           bodyTempDataList.clear();
@@ -137,7 +137,8 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
           data.forEach((key, value) {
             final heartRate = value['body_temp']['C'];
             final timestamp =
-            DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000).add(const Duration(hours: 7));
+                DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000)
+                    .add(const Duration(hours: 7));
 
             bodyTempDataList.add(_ChartData(timestamp, heartRate.toDouble()));
           });
@@ -188,7 +189,7 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
                   child: const Text(
                     'Daily Summary',
                     style:
-                    TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                        TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),
                 ),
                 _buildSummaryCard(),

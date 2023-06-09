@@ -19,6 +19,9 @@ class _SettingsPageState extends State<SettingsPage> {
   String userImage = "";
   String accessToken = "";
   String userStatus = "";
+  bool pushNotificationEnabled = true;
+  String channelAccessToken =
+      "8g2rzsNHv1jnflo7TtXlLFMQ3f0a5+apgLyjZcwnFaxw8Pb0qhrWA8l6UoKE+Rh7/nQoGG24ps0/EqQfaN0lajNtlgC337+qKvfKyNqh2M6qckhqdVIw0UwSO2J4a/ZIf3VB5C8wL4CrSpRJNyuzrQdB04t89/1O/w1cDnyilFU=";
 
   void lineSDKInit() async {
     await LineSDK.instance.setup("1661377246").then((_) {
@@ -53,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
     SharedPreferences savedPref = await SharedPreferences.getInstance();
     savedPref.setBool('isLoggedIn', isLoggedIn);
     savedPref.setString('userName', userName);
-    savedPref.setString('userEmail', userID);
+    savedPref.setString('userID', userID);
     savedPref.setString('userImage', userImage);
     savedPref.setString('accessToken', accessToken);
     savedPref.setString('userStatus', userStatus);
@@ -63,6 +66,9 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final result =
           await LineSDK.instance.login(scopes: ["profile", "email", "openid"]);
+      if (kDebugMode) {
+        print("data = ${result.data}");
+      }
       await _saveUserInfo(result);
       await _sendNotify();
     } on PlatformException catch (e) {
@@ -99,6 +105,41 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  void _showUnpairConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Unpair Smart Band'),
+          content: Text('Are you sure you want to unpair the smart band?'),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text('OK'),
+              onPressed: () async {
+                // Remove the MAC address and navigate to the register page
+                SharedPreferences savedPref =
+                    await SharedPreferences.getInstance();
+                savedPref.remove('macAddress');
+                _logout();
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/register',
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future getAccessToken() async {
     try {
       final result = await LineSDK.instance.currentAccessToken;
@@ -126,33 +167,40 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _sendNotify() async {
-    // Prepare the request body with your desired message and image URLs
-    final requestBody = {
-      "message": "Hello from Flutter!",
-      "imageThumbnail": "https://example.com/image-thumbnail.jpg",
-      "imageFullsize": "https://example.com/image-fullsize.jpg",
+    final url = Uri.parse('https://api.line.me/v2/bot/message/multicast');
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $channelAccessToken',
     };
 
-    if (accessToken != null) {
-      final response = await http.post(
-        Uri.parse("https://notify-api.line.me/api/notify"),
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Authorization": "Bearer $accessToken",
-        },
-        body: requestBody,
-      );
+    final requestBody = {
+      'to': [userID], // Add the user ID of the recipient here
+      'messages': [
+        {
+          'type': 'text',
+          'text':
+              'คุณ $userName ลงชื่อเข้าใช้งานสำเร็จ! ด้วยรหัสนาฬิกา $macAddress',
+          // Modify the notification message as desired
+        }
+      ],
+    };
 
-      if (response.statusCode == 200) {
-        // Notify sent successfully
-        if (kDebugMode) {
-          print(response.body);
-        }
-      } else {
-        // Handle notify failure
-        if (kDebugMode) {
-          print(response.body);
-        }
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: json.encode(requestBody),
+    );
+
+    if (response.statusCode == 200) {
+      // Notify sent successfully
+      if (kDebugMode) {
+        print(response.body);
+      }
+    } else {
+      // Handle notify failure
+      if (kDebugMode) {
+        print(response.body);
       }
     }
   }
@@ -169,7 +217,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text("$userStatus\n$macAddress"),
           ),
           ElevatedButton(
-            child: Text("Logout"),
+            child: const Text("Logout"),
             onPressed: () => _logout(),
           ),
         ],
@@ -177,14 +225,14 @@ class _SettingsPageState extends State<SettingsPage> {
     } else {
       return Column(children: [
         ListTile(
-          leading: CircleAvatar(
+          leading: const CircleAvatar(
             child: Icon(Icons.person),
           ),
-          title: Text('Not Logged In'),
+          title: const Text('Not Logged In'),
           subtitle: Text(macAddress),
         ),
         ElevatedButton(
-          child: Text("Login with LINE"),
+          child: const Text("Login with LINE"),
           onPressed: () => startLineLogin(),
         ),
       ]);
@@ -221,9 +269,21 @@ class _SettingsPageState extends State<SettingsPage> {
           SwitchListTile(
             title: Text('Push Notifications'),
             subtitle: Text('Receive push notifications'),
-            value: true,
-            onChanged: (value) {},
+            value: pushNotificationEnabled,
+            onChanged: (value) {
+              setState(() {
+                pushNotificationEnabled = value;
+              });
+
+              // TODO: Update the push notification setting on the server
+              // based on the value of `pushNotificationEnabled`.
+            },
             secondary: Icon(Icons.notifications),
+          ),
+          ListTile(
+            onTap: _showUnpairConfirmationDialog, // Update this line
+            leading: Icon(Icons.remove_circle),
+            title: Text('Unpair Smart Band'),
           ),
           ListTile(
             onTap: () {
@@ -242,6 +302,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             onTap: () {
               // Open details page
+              Navigator.pushNamed(context, "/setalert");
             },
             leading: Icon(Icons.notifications_off),
             title: Text('Notifications'),
