@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -20,6 +20,8 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
   int selectedRangeIndex = 0;
   String macAddress = "";
 
+  DateTime selectedDate = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -30,10 +32,8 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     _dataSubscription?.cancel();
-    // timer.cancel();
   }
 
   loadData() async {
@@ -51,17 +51,54 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
       if (event.snapshot.value != null) {
         setState(() {
           heartrateBPM = double.parse(event.snapshot.value.toString());
-          // Update your dataText variables with the fetched data
         });
       }
     });
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+        filterChartData();
+      });
+    }
+  }
+
+  void filterChartData() {
+    filteredHeartRateDataList.clear();
+    for (_ChartData data in heartRateDataList) {
+      if (data.x.year == selectedDate.year &&
+          data.x.month == selectedDate.month &&
+          data.x.day == selectedDate.day) {
+        filteredHeartRateDataList.add(data);
+      }
+    }
+  }
+
+  void unpairDevice() async {
+    SharedPreferences savedPref = await SharedPreferences.getInstance();
+    savedPref.remove('macAddress');
+    Navigator.pushReplacementNamed(context, '/register');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('อัตราการเต้นหัวใจ'),
+        title: Text('อัตราการเต้นหัวใจ'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.date_range),
+            onPressed: () => _selectDate(context),
+          ),
+        ],
       ),
       body: SizedBox(
         width: double.infinity,
@@ -72,12 +109,11 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
   }
 
   Widget _buildSummaryCard() {
-    // Calculate average, max, and min heart rates
     double averageHeartRate = 0;
     double maxHeartRate = double.negativeInfinity;
     double minHeartRate = double.infinity;
 
-    for (_ChartData data in heartRateDataList) {
+    for (_ChartData data in filteredHeartRateDataList) {
       averageHeartRate += data.y1;
 
       if (data.y1 > maxHeartRate) {
@@ -89,33 +125,37 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
       }
     }
 
-    if (heartRateDataList.isNotEmpty) {
-      averageHeartRate /= heartRateDataList.length;
+    if (filteredHeartRateDataList.isNotEmpty) {
+      averageHeartRate /= filteredHeartRateDataList.length;
     }
 
-    // Build the summary card widget
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              'ค่าเฉลี่ย: ${averageHeartRate.toStringAsFixed(2)} bpm',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-            Text(
-              'สูงสุด: ${maxHeartRate.toStringAsFixed(2)} bpm',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-            Text(
-              'ต่่ำสุด: ${minHeartRate.toStringAsFixed(2)} bpm',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-          ],
+    if (minHeartRate == double.infinity ||
+        maxHeartRate == double.negativeInfinity) {
+      return Text("ไม่พบข้อมูล");
+    } else {
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(
+                'ค่าเฉลี่ย: ${averageHeartRate.toStringAsFixed(2)} bpm',
+                style: const TextStyle(fontSize: 16.0),
+              ),
+              Text(
+                'สูงสุด: ${maxHeartRate.toStringAsFixed(2)} bpm',
+                style: const TextStyle(fontSize: 16.0),
+              ),
+              Text(
+                'ต่ำสุด: ${minHeartRate.toStringAsFixed(2)} bpm',
+                style: const TextStyle(fontSize: 16.0),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   Widget _showChart() {
@@ -129,20 +169,19 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
           final data =
               Map<String, dynamic>.from(snapshot.data?.snapshot.value as Map);
 
-          // Clear previous data
           heartRateDataList.clear();
-          filteredHeartRateDataList.clear();
 
-          // Extract heart rate data from the snapshot
           data.forEach((key, value) {
             final heartRate = value['heart_rate']['Avg BPM'];
-            final timestamp =
-                DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000)
-                    .add(const Duration(hours: 7));
+            final timestamp = DateTime.fromMillisecondsSinceEpoch(
+                    value['timestamp'] * 1000,
+                    isUtc: true)
+                .toLocal();
 
             heartRateDataList.add(_ChartData(timestamp, heartRate.toDouble()));
           });
 
+          filterChartData();
           widget = SingleChildScrollView(
             child: Column(
               children: [
@@ -164,7 +203,7 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
                     ),
                     series: <ScatterSeries<_ChartData, DateTime>>[
                       ScatterSeries<_ChartData, DateTime>(
-                        dataSource: heartRateDataList,
+                        dataSource: filteredHeartRateDataList,
                         trendlines: <Trendline>[
                           Trendline(
                               type: TrendlineType.linear, color: Colors.blue)
@@ -190,8 +229,9 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(16.0),
-                  child: const Text(
-                    'รายงานประจำวัน',
+                  child: Text(
+                    'รายงานประจำวัน \n ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                    textAlign: TextAlign.center,
                     style:
                         TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),
@@ -200,14 +240,30 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
               ],
             ),
           );
+        } else if (snapshot.hasError) {
+          widget = Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'ไม่พบอุปกรณ์',
+                  style: TextStyle(fontSize: 18.0),
+                ),
+                SizedBox(height: 16.0),
+                ElevatedButton(
+                  onPressed: unpairDevice,
+                  child: Text('ยกเลิกการเชื่อมต่ออุปกรณ์'),
+                ),
+              ],
+            ),
+          );
         } else {
-          widget = const Center(child: CircularProgressIndicator());
+          widget = Center(child: CircularProgressIndicator());
         }
 
         return SizedBox(
-          // Wrap the chart in a fixed-sized container to prevent flickering
           width: double.infinity,
-          height: 300, // Adjust the height as needed
+          height: 300,
           child: widget,
         );
       },

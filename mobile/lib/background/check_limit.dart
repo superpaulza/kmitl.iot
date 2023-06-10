@@ -1,12 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 final databaseReference = FirebaseDatabase.instance.ref();
@@ -21,8 +18,10 @@ double heartrateBPM = 0.0;
 double bodyTemp = 0.0;
 
 Future<void> checkSensorLimit() async {
-  await getPreference();
-  startDataSubscription();
+  if (userID.isNotEmpty) {
+    await getPreference();
+    startDataSubscription();
+  }
   // Return `Future.value(true)` if the task is successful
   return Future.value(true);
 }

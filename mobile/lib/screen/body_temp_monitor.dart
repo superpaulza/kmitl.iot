@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -20,6 +20,8 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
   int selectedRangeIndex = 0;
   String macAddress = "";
 
+  DateTime selectedDate = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -30,10 +32,8 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     _dataSubscription?.cancel();
-    // timer.cancel();
   }
 
   loadData() async {
@@ -51,17 +51,54 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
       if (event.snapshot.value != null) {
         setState(() {
           bodyTemp = double.parse(event.snapshot.value.toString());
-          // Update your dataText variables with the fetched data
         });
       }
     });
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+        filterChartData();
+      });
+    }
+  }
+
+  void filterChartData() {
+    filteredBodyTempDataList.clear();
+    for (_ChartData data in bodyTempDataList) {
+      if (data.x.year == selectedDate.year &&
+          data.x.month == selectedDate.month &&
+          data.x.day == selectedDate.day) {
+        filteredBodyTempDataList.add(data);
+      }
+    }
+  }
+
+  void unpairDevice() async {
+    SharedPreferences savedPref = await SharedPreferences.getInstance();
+    savedPref.remove('macAddress');
+    Navigator.pushReplacementNamed(context, '/register');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('อุณหภูมิร่างกาย'),
+        title: Text('อุณหภูมิร่างกาย'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.date_range),
+            onPressed: () => _selectDate(context),
+          ),
+        ],
       ),
       body: SizedBox(
         width: double.infinity,
@@ -72,50 +109,53 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
   }
 
   Widget _buildSummaryCard() {
-    // Calculate average, max, and min heart rates
-    double averageTemp = 0;
-    double maxTemp = double.negativeInfinity;
-    double minTemp = double.infinity;
+    double averageHeartRate = 0;
+    double maxHeartRate = double.negativeInfinity;
+    double minHeartRate = double.infinity;
 
-    for (_ChartData data in bodyTempDataList) {
-      averageTemp += data.y1;
+    for (_ChartData data in filteredBodyTempDataList) {
+      averageHeartRate += data.y1;
 
-      if (data.y1 > maxTemp) {
-        maxTemp = data.y1;
+      if (data.y1 > maxHeartRate) {
+        maxHeartRate = data.y1;
       }
 
-      if (data.y1 < minTemp) {
-        minTemp = data.y1;
+      if (data.y1 < minHeartRate) {
+        minHeartRate = data.y1;
       }
     }
 
-    if (bodyTempDataList.isNotEmpty) {
-      averageTemp /= bodyTempDataList.length;
+    if (filteredBodyTempDataList.isNotEmpty) {
+      averageHeartRate /= filteredBodyTempDataList.length;
     }
 
-    // Build the summary card widget
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              'ค่าเฉลี่ย: ${averageTemp.toStringAsFixed(2)} °C',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-            Text(
-              'สูงสุด: ${maxTemp.toStringAsFixed(2)} °C',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-            Text(
-              'ต่ำสุด: ${minTemp.toStringAsFixed(2)} °C',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-          ],
+    if (minHeartRate == double.infinity ||
+        maxHeartRate == double.negativeInfinity) {
+      return Text("ไม่พบข้อมูล");
+    } else {
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(
+                'ค่าเฉลี่ย: ${averageHeartRate.toStringAsFixed(2)} bpm',
+                style: const TextStyle(fontSize: 16.0),
+              ),
+              Text(
+                'สูงสุด: ${maxHeartRate.toStringAsFixed(2)} bpm',
+                style: const TextStyle(fontSize: 16.0),
+              ),
+              Text(
+                'ต่ำสุด: ${minHeartRate.toStringAsFixed(2)} bpm',
+                style: const TextStyle(fontSize: 16.0),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   Widget _showChart() {
@@ -129,20 +169,19 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
           final data =
               Map<String, dynamic>.from(snapshot.data?.snapshot.value as Map);
 
-          // Clear previous data
           bodyTempDataList.clear();
-          filteredBodyTempDataList.clear();
 
-          // Extract heart rate data from the snapshot
           data.forEach((key, value) {
             final heartRate = value['body_temp']['C'];
-            final timestamp =
-                DateTime.fromMillisecondsSinceEpoch(value['timestamp'] * 1000)
-                    .add(const Duration(hours: 7));
+            final timestamp = DateTime.fromMillisecondsSinceEpoch(
+                    value['timestamp'] * 1000,
+                    isUtc: true)
+                .toLocal();
 
             bodyTempDataList.add(_ChartData(timestamp, heartRate.toDouble()));
           });
 
+          filterChartData();
           widget = SingleChildScrollView(
             child: Column(
               children: [
@@ -164,7 +203,7 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
                     ),
                     series: <ScatterSeries<_ChartData, DateTime>>[
                       ScatterSeries<_ChartData, DateTime>(
-                        dataSource: bodyTempDataList,
+                        dataSource: filteredBodyTempDataList,
                         trendlines: <Trendline>[
                           Trendline(
                               type: TrendlineType.linear, color: Colors.blue)
@@ -172,6 +211,7 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
                         xAxisName: "เวลา",
                         yAxisName: "°C",
                         name: "อุณหภูมิร่างกาย",
+                        color: Colors.redAccent,
                         sortFieldValueMapper: (_ChartData data, _) => data.x,
                         markerSettings: const MarkerSettings(isVisible: true),
                         xValueMapper: (_ChartData data, _) => data.x,
@@ -189,8 +229,9 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(16.0),
-                  child: const Text(
-                    'รายงานประจำวัน',
+                  child: Text(
+                    'รายงานประจำวัน \n ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                    textAlign: TextAlign.center,
                     style:
                         TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),
@@ -199,14 +240,30 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
               ],
             ),
           );
+        } else if (snapshot.hasError) {
+          widget = Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'ไม่พบอุปกรณ์',
+                  style: TextStyle(fontSize: 18.0),
+                ),
+                SizedBox(height: 16.0),
+                ElevatedButton(
+                  onPressed: unpairDevice,
+                  child: Text('ยกเลิกการเชื่อมต่ออุปกรณ์'),
+                ),
+              ],
+            ),
+          );
         } else {
-          widget = const Center(child: CircularProgressIndicator());
+          widget = Center(child: CircularProgressIndicator());
         }
 
         return SizedBox(
-          // Wrap the chart in a fixed-sized container to prevent flickering
           width: double.infinity,
-          height: 300, // Adjust the height as needed
+          height: 300,
           child: widget,
         );
       },
