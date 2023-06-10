@@ -68,16 +68,16 @@ class _RegisterSmartBandPageState extends State<RegisterSmartBandPage> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Invalid MAC Address'),
+          title: Text('รหัสนาฬิกา MAC Address ไม่ถูกต้อง'),
           content: const Text(
-              'Your MAC Address is not in the correct format. Please try again!'),
+              'รหัสนาฬิกา MAC Address ของคุณไม่ถูกต้อง โปรดตรวจสอบอีกครั้ง'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _macAddressController.clear();
               },
-              child: const Text('OK'),
+              child: const Text('รับทราบ'),
             ),
           ],
         ),
@@ -104,12 +104,12 @@ class _RegisterSmartBandPageState extends State<RegisterSmartBandPage> {
                 ),
                 const SizedBox(height: 20.0),
                 const Text(
-                  'Register Smart Band',
+                  'ลงทะเบียนนาฬิกาอัจฉริยะ',
                   style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10.0),
                 const Text(
-                  'Please enter your smart band\'s MAC Address \n(Example: 00:B0:D0:63:C2:26)',
+                  'โปรดกรอกรหัส\'s MAC Address จากนาฬิกาของคุณ \n(ตัวอย่าง: 00:B0:D0:63:C2:26)',
                   style: TextStyle(fontSize: 16.0),
                   textAlign: TextAlign.center,
                 ),
@@ -118,10 +118,10 @@ class _RegisterSmartBandPageState extends State<RegisterSmartBandPage> {
                   autovalidateMode: AutovalidateMode.always,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter MAC address';
+                      return 'โปรดกรอก MAC address';
                     }
                     if (!_isMacAddressValid) {
-                      return 'Not valid MAC address';
+                      return 'รหัสนาฬิกา MAC address ไม่ถูกต้อง!';
                     }
                     return null;
                   },
@@ -148,7 +148,7 @@ class _RegisterSmartBandPageState extends State<RegisterSmartBandPage> {
                 const SizedBox(height: 20.0),
                 ElevatedButton(
                   onPressed: _submitForm,
-                  child: const Text('Register'),
+                  child: const Text('ลงทะเบียนนาฬิกา'),
                 ),
               ],
             ),

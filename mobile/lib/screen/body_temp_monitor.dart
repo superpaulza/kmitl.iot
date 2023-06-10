@@ -61,7 +61,7 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Body Temp Monitor'),
+        title: const Text('อุณหภูมิร่างกาย'),
       ),
       body: SizedBox(
         width: double.infinity,
@@ -101,15 +101,15 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
         child: Column(
           children: [
             Text(
-              'Average: ${averageTemp.toStringAsFixed(2)} °C',
+              'ค่าเฉลี่ย: ${averageTemp.toStringAsFixed(2)} °C',
               style: const TextStyle(fontSize: 16.0),
             ),
             Text(
-              'Max: ${maxTemp.toStringAsFixed(2)} °C',
+              'สูงสุด: ${maxTemp.toStringAsFixed(2)} °C',
               style: const TextStyle(fontSize: 16.0),
             ),
             Text(
-              'Min: ${minTemp.toStringAsFixed(2)} °C',
+              'ต่ำสุด: ${minTemp.toStringAsFixed(2)} °C',
               style: const TextStyle(fontSize: 16.0),
             ),
           ],
@@ -169,6 +169,9 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
                           Trendline(
                               type: TrendlineType.linear, color: Colors.blue)
                         ],
+                        xAxisName: "เวลา",
+                        yAxisName: "°C",
+                        name: "อุณหภูมิร่างกาย",
                         sortFieldValueMapper: (_ChartData data, _) => data.x,
                         markerSettings: const MarkerSettings(isVisible: true),
                         xValueMapper: (_ChartData data, _) => data.x,
@@ -181,13 +184,13 @@ class _BodyTempMonitorPageState extends State<BodyTempMonitorPage> {
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     '$bodyTemp °C',
-                    style: const TextStyle(fontSize: 20.0),
+                    style: const TextStyle(fontSize: 40.0),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(16.0),
                   child: const Text(
-                    'Daily Summary',
+                    'รายงานประจำวัน',
                     style:
                         TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),

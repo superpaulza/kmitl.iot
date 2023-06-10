@@ -15,10 +15,7 @@ class SetAlertNotificationPage extends StatefulWidget {
 }
 
 class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
-  final databaseReference = FirebaseDatabase.instance.ref();
-  StreamSubscription<DatabaseEvent>? _dataSubscription;
   Timer? _timer;
-
   double bodyTemp = 0.0;
   double heartrateBPM = 0.0;
   String macAddress = "";
@@ -26,29 +23,28 @@ class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
       "8g2rzsNHv1jnflo7TtXlLFMQ3f0a5+apgLyjZcwnFaxw8Pb0qhrWA8l6UoKE+Rh7/nQoGG24ps0/EqQfaN0lajNtlgC337+qKvfKyNqh2M6qckhqdVIw0UwSO2J4a/ZIf3VB5C8wL4CrSpRJNyuzrQdB04t89/1O/w1cDnyilFU=";
   String userID = "";
 
-  final TextEditingController _limitHeartRateController =
-      TextEditingController();
-  final TextEditingController _limitBodyTempController =
-      TextEditingController();
-  double bodyTempLimit = 0.0;
-  double heartRateLimit = 0.0;
+  final TextEditingController _minHeartRateController = TextEditingController();
+  final TextEditingController _maxHeartRateController = TextEditingController();
+  final TextEditingController _minBodyTempController = TextEditingController();
+  final TextEditingController _maxBodyTempController = TextEditingController();
+
+  double minBodyTempLimit = 0.0;
+  double maxBodyTempLimit = 0.0;
+  double minHeartRateLimit = 0.0;
+  double maxHeartRateLimit = 0.0;
 
   @override
   void initState() {
     super.initState();
-    loadData().then((_) {
-      startDataSubscription();
-      _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
-        checkThresholds();
-      });
-    });
+    loadData();
   }
 
   @override
   void dispose() {
-    stopDataSubscription();
-    _limitHeartRateController.dispose();
-    _limitBodyTempController.dispose();
+    _minHeartRateController.dispose();
+    _maxHeartRateController.dispose();
+    _minBodyTempController.dispose();
+    _maxBodyTempController.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -57,18 +53,25 @@ class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
     SharedPreferences savedPref = await SharedPreferences.getInstance();
     setState(() {
       macAddress = (savedPref.getString('macAddress') ?? "");
-      bodyTempLimit = savedPref.getDouble('bodyTempLimit') ?? 0.0;
-      heartRateLimit = savedPref.getDouble('heartRateLimit') ?? 0.0;
+      minBodyTempLimit = savedPref.getDouble('minBodyTempLimit') ?? 0.0;
+      maxBodyTempLimit = savedPref.getDouble('maxBodyTempLimit') ?? 0.0;
+      minHeartRateLimit = savedPref.getDouble('minHeartRateLimit') ?? 0.0;
+      maxHeartRateLimit = savedPref.getDouble('maxHeartRateLimit') ?? 0.0;
       userID = savedPref.getString('userID') ?? "";
-      _limitHeartRateController.text = heartRateLimit.toString();
-      _limitBodyTempController.text = bodyTempLimit.toString();
+      _minHeartRateController.text = minHeartRateLimit.toString();
+      _maxHeartRateController.text = maxHeartRateLimit.toString();
+      _minBodyTempController.text = minBodyTempLimit.toString();
+      _maxBodyTempController.text = maxBodyTempLimit.toString();
     });
   }
 
-  void saveData(double bodyTempLimit, double heartRateLimit) async {
+  void saveData(double minBodyTempLimit, double maxBodyTempLimit,
+      double minHeartRateLimit, double maxHeartRateLimit) async {
     SharedPreferences savedPref = await SharedPreferences.getInstance();
-    savedPref.setDouble('bodyTempLimit', bodyTempLimit);
-    savedPref.setDouble('heartRateLimit', heartRateLimit);
+    savedPref.setDouble('minBodyTempLimit', minBodyTempLimit);
+    savedPref.setDouble('maxBodyTempLimit', maxBodyTempLimit);
+    savedPref.setDouble('minHeartRateLimit', minHeartRateLimit);
+    savedPref.setDouble('maxHeartRateLimit', maxHeartRateLimit);
   }
 
   void showAlertBodyTemp() {
@@ -76,25 +79,33 @@ class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Bodytemp Limit"),
-          content: Column(
+          title: const Text("ตั้งค่าแจ้งเตือนอุณหภูมิร่างกาย"),
+          content: SingleChildScrollView(
+              child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
-                controller: _limitBodyTempController,
+                controller: _minBodyTempController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Limit (Max: 100 °C)',
+                  labelText: 'ค่าต่ำกว่า (ค่าสูงสุด: 100 °C)',
+                ),
+              ),
+              TextFormField(
+                controller: _maxBodyTempController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'ค่าสูงกว่า (ค่าสูงสุด: 100 °C)',
                 ),
               ),
             ],
-          ),
+          )),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
-              child: const Text('Cancel'),
+              child: const Text('ยกเลิก'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -103,16 +114,26 @@ class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
               style: TextButton.styleFrom(
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
-              child: const Text('Set'),
+              child: const Text('ตั้งค่า'),
               onPressed: () {
                 setState(() {
-                  if (double.parse(_limitBodyTempController.text) > 100) {
-                    bodyTempLimit = 100;
-                    _limitBodyTempController.text = "100";
-                  } else {
-                    bodyTempLimit = double.parse(_limitBodyTempController.text);
+                  double minLimit = double.parse(_minBodyTempController.text);
+                  double maxLimit = double.parse(_maxBodyTempController.text);
+                  if (minLimit > maxLimit) {
+                    double temp = minLimit;
+                    minLimit = maxLimit;
+                    maxLimit = temp;
+                    _minBodyTempController.text = minLimit.toString();
+                    _maxBodyTempController.text = maxLimit.toString();
                   }
-                  saveData(bodyTempLimit, heartRateLimit);
+                  if (maxLimit > 100) {
+                    maxLimit = 100;
+                    _maxBodyTempController.text = "100";
+                  }
+                  minBodyTempLimit = minLimit;
+                  maxBodyTempLimit = maxLimit;
+                  saveData(minBodyTempLimit, maxBodyTempLimit,
+                      minHeartRateLimit, maxHeartRateLimit);
                 });
                 Navigator.of(context).pop();
               },
@@ -128,25 +149,34 @@ class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Heartrate Limit"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _limitHeartRateController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Limit (Max: 200 bpm)',
+          title: const Text("ตั้งค่าแจ้งเตือนอัตราการเต้นหัวใจ"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _minHeartRateController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'ค่าต่ำกว่า (ค่าสูงสุด: 200 bpm)',
+                  ),
                 ),
-              ),
-            ],
+                TextFormField(
+                  controller: _maxHeartRateController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'ค่าสูงกว่า (ค่าสูงสุด: 200 bpm)',
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
-              child: const Text('Cancel'),
+              child: const Text('ยกเลิก'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -155,17 +185,26 @@ class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
               style: TextButton.styleFrom(
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
-              child: const Text('Set'),
+              child: const Text('ตั้งค่า'),
               onPressed: () {
                 setState(() {
-                  if (double.parse(_limitHeartRateController.text) > 200) {
-                    heartRateLimit = 200;
-                    _limitHeartRateController.text = "200";
-                  } else {
-                    heartRateLimit =
-                        double.parse(_limitHeartRateController.text);
+                  double minLimit = double.parse(_minHeartRateController.text);
+                  double maxLimit = double.parse(_maxHeartRateController.text);
+                  if (minLimit > maxLimit) {
+                    double temp = minLimit;
+                    minLimit = maxLimit;
+                    maxLimit = temp;
+                    _minHeartRateController.text = minLimit.toString();
+                    _maxHeartRateController.text = maxLimit.toString();
                   }
-                  saveData(bodyTempLimit, heartRateLimit);
+                  if (maxLimit > 200) {
+                    maxLimit = 200;
+                    _maxHeartRateController.text = "200";
+                  }
+                  minHeartRateLimit = minLimit;
+                  maxHeartRateLimit = maxLimit;
+                  saveData(minBodyTempLimit, maxBodyTempLimit,
+                      minHeartRateLimit, maxHeartRateLimit);
                 });
                 Navigator.of(context).pop();
               },
@@ -176,152 +215,70 @@ class _SetAlertNotificationPageState extends State<SetAlertNotificationPage> {
     );
   }
 
-  void checkThresholds() {
-    if (bodyTemp >= bodyTempLimit) {
-      sendLineMessage(
-          "[แจ้งเตือน] นาฬิกา $macAddress มีอุณหภูมิ $bodyTemp °C, เกินกว่า $bodyTempLimit °C ที่กำหนด");
-    }
-    if (heartrateBPM >= heartRateLimit) {
-      sendLineMessage(
-          "[แจ้งเตือน] นาฬิกา $macAddress มีอัตราการเต้นหัวใจ $heartrateBPM bpm, เกินกว่า $heartRateLimit bpm ที่กำหนด");
-    }
-  }
-
-  void sendLineMessage(String str) async {
-    final url = Uri.parse('https://api.line.me/v2/bot/message/multicast');
-
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $channelAccessToken',
-    };
-
-    final requestBody = {
-      'to': [userID], // Add the user ID of the recipient here
-      'messages': [
-        {
-          'type': 'text',
-          'text': str,
-          // Modify the notification message as desired
-        }
-      ],
-    };
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: json.encode(requestBody),
-    );
-
-    if (response.statusCode == 200) {
-      // Notify sent successfully
-      if (kDebugMode) {
-        print(response.body);
-      }
-    } else {
-      // Handle notify failure
-      if (kDebugMode) {
-        print(response.body);
-      }
-    }
-  }
-
-  void startDataSubscription() {
-    _dataSubscription = databaseReference
-        .child('/$macAddress/body_temp/C')
-        .onValue
-        .listen((DatabaseEvent event) {
-      if (event.snapshot.value != null) {
-        setState(() {
-          bodyTemp = double.parse(event.snapshot.value.toString());
-          checkThresholds();
-        });
-      }
-    });
-    _dataSubscription = databaseReference
-        .child('/$macAddress/heart_rate/Avg BPM')
-        .onValue
-        .listen((DatabaseEvent event) {
-      if (event.snapshot.value != null) {
-        setState(() {
-          heartrateBPM = double.parse(event.snapshot.value.toString());
-          checkThresholds();
-        });
-      }
-    });
-  }
-
-  void stopDataSubscription() {
-    _dataSubscription?.cancel();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Text('ตั้งค่าการแจ้งเตือน'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(10),
-        child: GridView.count(
-          crossAxisCount: 2,
+        child: Row(
           children: [
-            GestureDetector(
-              onTap: () => showAlertHeartRate(),
-              child: Card(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.favorite_border,
-                      size: 50,
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "Heartrate",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(width: 5),
-                        Text(
-                          'Limit: $heartRateLimit',
-                          style: const TextStyle(fontSize: 15),
-                        ),
-                      ],
-                    ),
-                  ],
+            Expanded(
+              child: GestureDetector(
+                onTap: () => showAlertHeartRate(),
+                child: Card(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.favorite_border,
+                        size: 50,
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'อัตราการเต้นหัวใจ',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'ต่ำสุด: ${minHeartRateLimit.toStringAsFixed(1)} bpm\n'
+                        'สูงสุด: ${maxHeartRateLimit.toStringAsFixed(1)} bpm',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
                 ),
               ),
             ),
-            GestureDetector(
-              onTap: () => showAlertBodyTemp(),
-              child: Card(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.thermostat_outlined,
-                      size: 50,
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "Body Temp",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(width: 5),
-                        Text(
-                          'Limit: $bodyTempLimit',
-                          style: const TextStyle(fontSize: 15),
-                        ),
-                      ],
-                    ),
-                  ],
+            Expanded(
+              child: GestureDetector(
+                onTap: () => showAlertBodyTemp(),
+                child: Card(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.thermostat_outlined,
+                        size: 50,
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'อุณหภูมิร่างกาย',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'ต่ำสุด: ${minBodyTempLimit.toStringAsFixed(1)} °C\n'
+                        'สูงสุด: ${maxBodyTempLimit.toStringAsFixed(1)} °C',
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

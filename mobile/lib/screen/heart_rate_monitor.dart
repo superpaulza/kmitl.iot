@@ -61,7 +61,7 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Heart Rate Monitor'),
+        title: const Text('อัตราการเต้นหัวใจ'),
       ),
       body: SizedBox(
         width: double.infinity,
@@ -101,15 +101,15 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
         child: Column(
           children: [
             Text(
-              'Average: ${averageHeartRate.toStringAsFixed(2)} bpm',
+              'ค่าเฉลี่ย: ${averageHeartRate.toStringAsFixed(2)} bpm',
               style: const TextStyle(fontSize: 16.0),
             ),
             Text(
-              'Max: ${maxHeartRate.toStringAsFixed(2)} bpm',
+              'สูงสุด: ${maxHeartRate.toStringAsFixed(2)} bpm',
               style: const TextStyle(fontSize: 16.0),
             ),
             Text(
-              'Min: ${minHeartRate.toStringAsFixed(2)} bpm',
+              'ต่่ำสุด: ${minHeartRate.toStringAsFixed(2)} bpm',
               style: const TextStyle(fontSize: 16.0),
             ),
           ],
@@ -169,6 +169,10 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
                           Trendline(
                               type: TrendlineType.linear, color: Colors.blue)
                         ],
+                        xAxisName: "เวลา",
+                        yAxisName: "bpm",
+                        name: "อัตราการเต้นหัวใจ",
+                        color: Colors.redAccent,
                         sortFieldValueMapper: (_ChartData data, _) => data.x,
                         markerSettings: const MarkerSettings(isVisible: true),
                         xValueMapper: (_ChartData data, _) => data.x,
@@ -181,13 +185,13 @@ class _HeartRateMonitorPageState extends State<HeartRateMonitorPage> {
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     '$heartrateBPM bpm',
-                    style: const TextStyle(fontSize: 20.0),
+                    style: const TextStyle(fontSize: 40.0),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(16.0),
                   child: const Text(
-                    'Daily Summary',
+                    'รายงานประจำวัน',
                     style:
                         TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),

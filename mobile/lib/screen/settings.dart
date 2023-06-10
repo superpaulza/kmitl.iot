@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   @override
@@ -19,7 +21,6 @@ class _SettingsPageState extends State<SettingsPage> {
   String userImage = "";
   String accessToken = "";
   String userStatus = "";
-  bool pushNotificationEnabled = true;
   String channelAccessToken =
       "8g2rzsNHv1jnflo7TtXlLFMQ3f0a5+apgLyjZcwnFaxw8Pb0qhrWA8l6UoKE+Rh7/nQoGG24ps0/EqQfaN0lajNtlgC337+qKvfKyNqh2M6qckhqdVIw0UwSO2J4a/ZIf3VB5C8wL4CrSpRJNyuzrQdB04t89/1O/w1cDnyilFU=";
 
@@ -110,17 +111,17 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Unpair Smart Band'),
-          content: Text('Are you sure you want to unpair the smart band?'),
+          title: Text('ยกเลิการเชื่อมต่อนาฬิกาอัจฉริยะ'),
+          content: Text('คุณต้องการที่จะยกเลิการเชื่อมต่อนาฬิกาอัจฉริยะกับแอปพลิเคชันนี้หรือไม่ ?'),
           actions: [
             TextButton(
-              child: Text('Cancel'),
+              child: Text('ไม่'),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
               },
             ),
             TextButton(
-              child: Text('OK'),
+              child: Text('ใช่'),
               onPressed: () async {
                 // Remove the MAC address and navigate to the register page
                 SharedPreferences savedPref =
@@ -217,7 +218,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text("$userStatus\n$macAddress"),
           ),
           ElevatedButton(
-            child: const Text("Logout"),
+            child: const Text("ออกจากระบบ"),
             onPressed: () => _logout(),
           ),
         ],
@@ -228,11 +229,11 @@ class _SettingsPageState extends State<SettingsPage> {
           leading: const CircleAvatar(
             child: Icon(Icons.person),
           ),
-          title: const Text('Not Logged In'),
+          title: const Text('บุคคลนิรนาม'),
           subtitle: Text(macAddress),
         ),
         ElevatedButton(
-          child: const Text("Login with LINE"),
+          child: const Text("เชื่อมต่อกับ LINE"),
           onPressed: () => startLineLogin(),
         ),
       ]);
@@ -242,7 +243,6 @@ class _SettingsPageState extends State<SettingsPage> {
   void _logout() async {
     // Clear user information from shared preference
     saveData(false, "", "", "", "", "");
-
     // Clear LINE SDK access token
     await LineSDK.instance.logout();
 
@@ -260,19 +260,23 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
+        title: Text('การตั้งค่า'),
       ),
       body: ListView(
         children: [
           _buildProfileSection(),
           Divider(),
           SwitchListTile(
-            title: Text('Push Notifications'),
-            subtitle: Text('Receive push notifications'),
-            value: pushNotificationEnabled,
+            title: Text('แจ้งเตือนผ่าน LINE'),
+            subtitle: Text('ต้องการรับการแจ้งเตือนผ่าน LINE ไหม ?'),
+            value: isLoggedIn,
             onChanged: (value) {
               setState(() {
-                pushNotificationEnabled = value;
+                if(value == true) {
+                  startLineLogin();
+                } else {
+                  _logout();
+                }
               });
 
               // TODO: Update the push notification setting on the server
@@ -280,24 +284,17 @@ class _SettingsPageState extends State<SettingsPage> {
             },
             secondary: Icon(Icons.notifications),
           ),
+          // ListTile(
+          //   onTap: () {
+          //     launchUrl(Uri.parse("https://line.me/R/ti/p/@072sjexp"));
+          //   }, // Update this line
+          //   leading: Icon(Icons.person_add_rounded),
+          //   title: Text('เพิ่มเพื่อน LINE เพื่อรับการแจ้งเตือน'),
+          // ),
           ListTile(
             onTap: _showUnpairConfirmationDialog, // Update this line
             leading: Icon(Icons.remove_circle),
-            title: Text('Unpair Smart Band'),
-          ),
-          ListTile(
-            onTap: () {
-              // Open details page
-            },
-            leading: Icon(Icons.language),
-            title: Text('Language'),
-          ),
-          ListTile(
-            onTap: () {
-              // Open details page
-            },
-            leading: Icon(Icons.lock),
-            title: Text('Privacy'),
+            title: Text('ยกเลิกการเชื่อมต่อนาฬิกาอัจฉริยะ'),
           ),
           ListTile(
             onTap: () {
@@ -305,14 +302,19 @@ class _SettingsPageState extends State<SettingsPage> {
               Navigator.pushNamed(context, "/setalert");
             },
             leading: Icon(Icons.notifications_off),
-            title: Text('Notifications'),
+            title: Text('ตั้งค่าการแจ้งเตือน'),
           ),
           ListTile(
             onTap: () {
-              // Open details page
+              final Uri params = Uri(
+                scheme: 'mailto',
+                path: '62050198@kmitl.ac.th',
+                query: 'subject=[แจ้งเตือน] ขอความช่วยเหลิอฉุกเฉินจากนาฬิกา&body=ขอความช่วยเหลิอฉุกเฉินจากนาฬิกา $macAddress',
+              );
+              launchUrl(params);
             },
             leading: Icon(Icons.help),
-            title: Text('Help & Support'),
+            title: Text('ขอความช่วยเหลือ'),
           ),
         ],
       ),
