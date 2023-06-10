@@ -39,21 +39,10 @@ Future<void> getPreference() async {
 }
 
 void checkThresholds() {
-  if (bodyTemp < minBodyTempLimit && bodyTemp > 0) {
+  if ((bodyTemp < minBodyTempLimit || bodyTemp > maxBodyTempLimit) ||
+      (heartrateBPM < minHeartRateLimit || heartrateBPM > maxHeartRateLimit)) {
     sendLineMessage(
-        "[แจ้งเตือน] อุปกรณ์ $macAddress มีอุณหภูมิ $bodyTemp °C, ซึ่งน้อยกว่า $minBodyTempLimit °C ที่กำหนดไว้");
-  }
-  if (bodyTemp > maxBodyTempLimit) {
-    sendLineMessage(
-        "[แจ้งเตือน] อุปกรณ์ $macAddress มีอุณหภูมิ $bodyTemp °C, ซึ่งมากกว่า $maxBodyTempLimit °C ที่กำหนดไว้");
-  }
-  if (heartrateBPM < minHeartRateLimit && heartrateBPM > 0) {
-    sendLineMessage(
-        "[แจ้งเตือน] อุปกรณ์ $macAddress มีอัตราการเต้นหัวใจ $heartrateBPM bpm, ซึ่งน้อยกว่า $minHeartRateLimit bpm ที่กำหนดไว้");
-  }
-  if (heartrateBPM > maxHeartRateLimit) {
-    sendLineMessage(
-        "[แจ้งเตือน] อุปกรณ์ $macAddress มีอัตราการเต้นหัวใจ $heartrateBPM bpm, ซึ่งมากกว่า $maxHeartRateLimit bpm ที่กำหนดไว้");
+        "[แจ้งเตือน] อุปกรณ์ $macAddress มีอุณหภูมิ $bodyTemp °C และมีอัตราการเต้นหัวใจ $heartrateBPM bpm, ซึ่งถึงค่าที่กำหนดไว้");
   }
 }
 

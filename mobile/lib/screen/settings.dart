@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 // import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+import 'package:restart_app/restart_app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -72,6 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
       await _saveUserInfo(result);
       await _sendNotify();
+      Restart.restartApp(webOrigin: '/register');
     } on PlatformException catch (e) {
       print(e);
       switch (e.code.toString()) {
