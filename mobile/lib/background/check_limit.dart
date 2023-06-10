@@ -41,13 +41,12 @@ Future<void> getPreference() async {
 void checkThresholds() {
   if ((bodyTemp < minBodyTempLimit || bodyTemp > maxBodyTempLimit) ||
       (heartrateBPM < minHeartRateLimit || heartrateBPM > maxHeartRateLimit)) {
-    sendLineMessage(
-        "[แจ้งเตือน] อุปกรณ์ $macAddress มีอุณหภูมิ $bodyTemp °C และมีอัตราการเต้นหัวใจ $heartrateBPM bpm, ซึ่งถึงค่าที่กำหนดไว้");
+    sendFlexMessage();
   }
 }
 
-void sendLineMessage(String str) async {
-  final url = Uri.parse('https://api.line.me/v2/bot/message/multicast');
+void sendFlexMessage() async {
+  final url = Uri.parse('https://api.line.me/v2/bot/message/push');
   String channelAccessToken =
       "8g2rzsNHv1jnflo7TtXlLFMQ3f0a5+apgLyjZcwnFaxw8Pb0qhrWA8l6UoKE+Rh7/nQoGG24ps0/EqQfaN0lajNtlgC337+qKvfKyNqh2M6qckhqdVIw0UwSO2J4a/ZIf3VB5C8wL4CrSpRJNyuzrQdB04t89/1O/w1cDnyilFU=";
 
@@ -57,14 +56,122 @@ void sendLineMessage(String str) async {
   };
 
   final requestBody = {
-    'to': [userID], // Add the user ID of the recipient here
+    'to': userID, // Add the user ID of the recipient here
     'messages': [
       {
-        'type': 'text',
-        'text': str,
-        // Modify the notification message as desired
+        "type": "flex",
+        "altText": "แจ้งเตือนค่าเกินที่กำหนด",
+        "contents": {
+          "type": "bubble",
+          "body": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "image",
+                "url": "https://cdn-icons-png.flaticon.com/512/559/559343.png",
+                "size": "full",
+                "aspectRatio": "20:13",
+                "aspectMode": "cover"
+              },
+              {
+                "type": "text",
+                "text": "แจ้งเตือนค่าเกินที่กำหนด",
+                "weight": "bold",
+                "size": "md",
+                "margin": "lg"
+              },
+              {
+                "type": "box",
+                "layout": "baseline",
+                "margin": "md",
+                "contents": [
+                  {
+                    "type": "icon",
+                    "url":
+                        "https://cdn-icons-png.flaticon.com/512/214/214309.png",
+                    "size": "xxl"
+                  },
+                  {
+                    "type": "text",
+                    "text": "$heartrateBPM bpm",
+                    "size": "xl",
+                    "align": "start",
+                    "gravity": "center"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": "อัตราการเต้นหัวใจ",
+                "size": "sm",
+                "color": "#aaaaaa",
+                "margin": "md"
+              },
+              {
+                "type": "text",
+                "text": "$minHeartRateLimit bpm/$maxHeartRateLimit bpm",
+                "size": "sm",
+                "color": "#aaaaaa",
+                "margin": "md"
+              },
+              {
+                "type": "box",
+                "layout": "baseline",
+                "margin": "md",
+                "contents": [
+                  {
+                    "type": "icon",
+                    "url":
+                        "https://upload.wikimedia.org/wikipedia/en/d/d5/Thermometer_icon.png",
+                    "size": "xxl"
+                  },
+                  {
+                    "type": "text",
+                    "text": "$bodyTemp °C",
+                    "size": "xl",
+                    "align": "start",
+                    "gravity": "center"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": "อุณหภูมิร่างกาย",
+                "size": "sm",
+                "color": "#aaaaaa",
+                "margin": "md"
+              },
+              {
+                "type": "text",
+                "text": "$minBodyTempLimit °C/$maxBodyTempLimit °C",
+                "size": "sm",
+                "color": "#aaaaaa",
+                "margin": "md"
+              },
+              {"type": "separator", "margin": "lg"},
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "margin": "md",
+                "contents": [
+                  {
+                    "type": "button",
+                    "action": {
+                      "type": "uri",
+                      "label": "โทรหาหน่วยแพทย์ฉุกเฉิน",
+                      "uri": "tel://1669"
+                    },
+                    "height": "sm",
+                    "style": "primary"
+                  }
+                ]
+              }
+            ]
+          }
+        }
       }
-    ],
+    ]
   };
 
   final response = await http.post(
