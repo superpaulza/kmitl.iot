@@ -18,10 +18,8 @@ double heartrateBPM = 0.0;
 double bodyTemp = 0.0;
 
 Future<void> checkSensorLimit() async {
-  if (userID.isNotEmpty) {
     await getPreference();
     startDataSubscription();
-  }
   // Return `Future.value(true)` if the task is successful
   return Future.value(true);
 }
